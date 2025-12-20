@@ -119,6 +119,8 @@ Connect to you wifi using `sudo nmtui`, or `sudo nmcli dev wifi connect SSID pas
 
 ## Example of working WiFi7 BE200
 
+Notice MLO (Multi link operation) with several frequencies in `iw dev`
+
 ```bash
 $ iw dev
 phy#1
@@ -137,6 +139,8 @@ phy#1
                  - link ID  2 link addr ##:##:##:##:##:##
                    channel 37 (6135 MHz), width: 160 MHz, center1: 6185 MHz
 ```
+
+Notice `wifi_generation=7` in `wpa_cli -i wlan1 status`
 
 ```bash
 $ sudo wpa_cli -i wlan1 status
