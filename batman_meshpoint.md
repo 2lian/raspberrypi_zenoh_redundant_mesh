@@ -23,7 +23,13 @@ sudo pkill -f "wpa_supplicant.*$WIFI_CARD" # maybe necessary
 sudo ip link set $WIFI_CARD down
 sudo iw dev $WIFI_CARD set type mp
 sudo ip link set $WIFI_CARD up
-sudo iw dev $WIFI_CARD mesh join mesh0 freq 2412 key 0:some_password
+```
+
+Setup your config in `/etc/wpa_supplicant/mesh.conf` and use wpa_supplicant to start the mesh.
+
+```bash
+cp ~/raspberrypi_zenoh_redundant_mesh/wpa_supplicant.conf /etc/wpa_supplicant/mesh.conf
+sudo wpa_supplicant -D nl80211 -i $WIFI_CARD -c /etc/wpa_supplicant/mesh.conf -B
 ```
 
 ## Setup the BATMAN routing protocol
