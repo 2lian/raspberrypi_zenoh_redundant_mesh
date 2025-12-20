@@ -9,7 +9,7 @@ For some reason, my imager doesn't create an account, password and ssh. Maybe yo
 
 ### Enabling ssh, setting account, password and hostname:
 
-Plug the pi's sd card on your PC and create an empty `ssh` file into the boot directory.
+Plug the pi's sd card on your PC and create an empty `ssh` fSupported interface modesile into the boot directory.
 
 ```bash
 cd /media/USER_GOES_HERE/bootfs
@@ -106,7 +106,7 @@ iw phy phy0 info # display info of the phy0 interface.
 # Info to look for:
 # - 6GHz bands on wifi6e+wifi7
 # - "IBSS" for (potential) IBSS mesh mode support
-# - "mesh point" for 801.11s mesh mode support
+# - "mesh point" inside "Supported interface modes" for 801.11s mesh mode support
 
 sudo wpa_cli -i wlan0 scan # scans all frequencies
 sudo wpa_cli -i wlan0 scan_result # shows result (after a few seconds)
