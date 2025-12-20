@@ -77,11 +77,6 @@ sudo chmod 644 /lib/firmware/iwlwifi-gl-c0-fm-c0-*.ucode
 WPA supplicant handles WiFi implementation, login, security ... This is often not shipped with WiFi7 or MLO enabled.
 
 ```bash
-git clone https://github.com/2lian/raspberrypi_zenoh_redundant_mesh.git ~/raspberrypi_zenoh_redundant_mesh
-
-sudo apt install build-essential git pkg-config libssl-dev libnl-3-dev libnl-genl-3-dev libdbus-1-dev iw libnl-route-3-dev
-git clone https://git.w1.fi/hostap.git ~/hostap || true
-
 case "$(uname -m)" in
     aarch64)
         export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/lib/aarch64-linux-gnu/pkgconfig/"
@@ -90,6 +85,11 @@ case "$(uname -m)" in
         export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/lib/x86_64-linux-gnu/pkgconfig/"
         ;;
 esac
+
+git clone https://github.com/2lian/raspberrypi_zenoh_redundant_mesh.git ~/raspberrypi_zenoh_redundant_mesh
+
+sudo apt install build-essential git pkg-config libssl-dev libnl-3-dev libnl-genl-3-dev libdbus-1-dev iw libnl-route-3-dev
+git clone https://git.w1.fi/hostap.git ~/hostap || true
 
 cd ~/hostap
 cd wpa_supplicant/
@@ -118,7 +118,7 @@ sudo wpa_cli -i wlan0 status # active connection properties
 sudo wpa_cli -i wlan0 roam BSSID # roams to the specified BSSID
 ```
 
-Connect to you wifi using `sudo nmtui`, or `sudo nmcli dev wifi connect SSID password PASSWORD ifname wlan0 # connects to a station` (for me nmtui works better than nmcli)
+Connect to your wifi using `sudo nmtui`, or `sudo nmcli dev wifi connect SSID password PASSWORD ifname wlan0 # connects to a station` (for me nmtui works better than nmcli)
 
 ## Example of working WiFi7 BE200
 
