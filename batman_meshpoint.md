@@ -23,7 +23,7 @@ sudo pkill -f "wpa_supplicant.*$WIFI_CARD" # maybe necessary
 sudo ip link set $WIFI_CARD down
 sudo iw dev $WIFI_CARD set type mp
 sudo ip link set $WIFI_CARD up
-iw dev wlan0 mesh join mesh0 freq 2412 key 0:some_password
+sudo iw dev $WIFI_CARD mesh join mesh0 freq 2412 key 0:some_password
 ```
 
 ## Setup the BATMAN routing protocol
@@ -39,7 +39,7 @@ sudo ip link set up dev bat0
 See other client and neighbors using:
 
 ```bash
-iw dev wlan0 station dump  # shows WiFi neighbors and more
+iw dev $WIFI_CARD station dump  # shows WiFi neighbors and more
 sudo batctl n  # shows batman neighbors
 sudo batctl o  # shows the originator table (routing)
 ```
