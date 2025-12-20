@@ -116,3 +116,52 @@ sudo wpa_cli -i wlan0 roam BSSID # roams to the specified BSSID
 ```
 
 Connect to you wifi using `sudo nmtui`, or `sudo nmcli dev wifi connect SSID password PASSWORD ifname wlan0 # connects to a station` (for me nmtui works better than nmcli)
+
+## Example of working WiFi7 BE200
+
+```bash
+$ iw dev
+phy#1
+        Interface wlan1
+                ifindex 5
+                wdev 0x100000001
+                addr ##:##:##:##:##:##
+                ssid #####
+                type managed
+                multicast TXQ:
+                        qsz-byt qsz-pkt flows   drops   marks   overlmt hashcol tx-bytes        tx-packets
+                        0       0       0       0       0       0       0       0               0
+                MLD with links:
+                 - link ID  0 link addr ##:##:##:##:##:##
+                 - link ID  1 link addr ##:##:##:##:##:##
+                 - link ID  2 link addr ##:##:##:##:##:##
+                   channel 37 (6135 MHz), width: 160 MHz, center1: 6185 MHz
+```
+
+```bash
+$ sudo wpa_cli -i wlan1 status
+bssid=##:##:##:##:##:##
+freq=6135
+ssid=#####
+id=0
+mode=station
+wifi_generation=7
+max_nss_rx=2
+max_nss_tx=2
+channel_width=160
+pairwise_cipher=CCMP
+group_cipher=CCMP
+key_mgmt=FT-SAE
+pmf=2
+mgmt_group_cipher=BIP
+sae_group=19
+sae_h2e=1
+sae_pk=0
+wpa_state=COMPLETED
+ip_address=192.168.2.83
+p2p_device_address=##:##:##:##:##:##
+address=##:##:##:##:##:##
+ap_mld_addr=##:##:##:##:##:##
+uuid=#####-#####-#####-#####-#####
+ssid_verified=1
+```
