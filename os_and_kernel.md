@@ -101,5 +101,17 @@ wpa_supplicant -v
 # Testing if it works
 
 ```bash
-iw dev
+iw dev # lists all interfaces and their state
+iw phy phy0 info # display info of the phy0 interface.
+# Info to look for:
+# - 6GHz bands on wifi6e+wifi7
+# - "IBSS" for (potential) IBSS mesh mode support
+# - "mesh point" for 801.11s mesh mode support
+
+sudo wpa_cli -i wlan0 scan # scans all frequencies
+sudo wpa_cli -i wlan0 scan_result # shows result (after a few seconds)
+sudo nmcli dev wifi connect SSID password PASSWORD ifname wlan0 # connects to a station
+sudo wpa_cli -i wlan0 status # active connection properties
+
+sudo wpa_cli -i wlan0 roam BSSID # roams to the specified BSSID
 ```
