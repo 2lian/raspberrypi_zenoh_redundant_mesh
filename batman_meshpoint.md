@@ -28,7 +28,7 @@ sudo ip link set $WIFI_CARD up
 Setup your config in `/etc/wpa_supplicant/mesh.conf` and use wpa_supplicant to start the mesh.
 
 ```bash
-cp ~/raspberrypi_zenoh_redundant_mesh/wpa_supplicant.conf /etc/wpa_supplicant/mesh.conf
+sudo cp ~/raspberrypi_zenoh_redundant_mesh/wpa_supplicant.conf /etc/wpa_supplicant/mesh.conf
 sudo wpa_supplicant -D nl80211 -i $WIFI_CARD -c /etc/wpa_supplicant/mesh.conf -B
 ```
 
