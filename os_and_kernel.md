@@ -69,7 +69,7 @@ sudo cp iwlwifi-gl-c0-fm-c0-*.ucode /lib/firmware/
 sudo chmod 644 /lib/firmware/iwlwifi-gl-c0-fm-c0-*.ucode
 ```
 
-# WPA supplicant update
+# WPA supplicant update to v2.12
 
 WPA supplicant handles WiFi implementation, login, security ... This is often not shipped with WiFi7 or MLO enabled.
 
