@@ -25,10 +25,15 @@ sudo iw dev $WIFI_CARD set type mp
 sudo ip link set $WIFI_CARD up
 ```
 
-Setup your config in `/etc/wpa_supplicant/mesh.conf` and use wpa_supplicant to start the mesh.
+Setup your config in `/etc/wpa_supplicant/mesh.conf`, you can copy the one in this repo with:
 
 ```bash
 sudo cp ~/raspberrypi_zenoh_redundant_mesh/wpa_supplicant.conf /etc/wpa_supplicant/mesh.conf
+```
+
+Use wpa_supplicant to start the mesh.
+
+```bash
 sudo wpa_supplicant -D nl80211 -i $WIFI_CARD -c /etc/wpa_supplicant/mesh.conf -B
 ```
 
