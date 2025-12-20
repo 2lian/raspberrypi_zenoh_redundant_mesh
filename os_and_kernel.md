@@ -110,8 +110,9 @@ iw phy phy0 info # display info of the phy0 interface.
 
 sudo wpa_cli -i wlan0 scan # scans all frequencies
 sudo wpa_cli -i wlan0 scan_result # shows result (after a few seconds)
-sudo nmcli dev wifi connect SSID password PASSWORD ifname wlan0 # connects to a station
 sudo wpa_cli -i wlan0 status # active connection properties
 
 sudo wpa_cli -i wlan0 roam BSSID # roams to the specified BSSID
 ```
+
+Connect to you wifi using `sudo nmtui`, or `sudo nmcli dev wifi connect SSID password PASSWORD ifname wlan0 # connects to a station` (for me nmtui works better than nmcli)
