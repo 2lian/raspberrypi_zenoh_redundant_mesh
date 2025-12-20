@@ -40,7 +40,10 @@ sudo nano /etc/hosts
 
 # Kernel (linux 6.18)
 
-The new kernel is required for driver enabling WiFi7 using the intel BE200.
+> [!NOTE]
+> Your installation might not need this. Generic linux kernel 6.11 and above has support for the BE200, generic Ubuntu 24.04 should work right away.
+
+The new kernel is required for driver enabling WiFi7 using the intel BE200. Furthermore it is disabled on raspi kernel for some reason.
 
 The following will build the raspi kernel, this is not a generic x86 linux kernel. 
 Procedure for generic kernel is similar if not easier (especially using `mainline` kernels).
