@@ -13,7 +13,7 @@ Plug the pi's sd card on your PC and create an empty `ssh` file into the boot di
 
 ```bash
 cd /media/USER_GOES_HERE/bootfs
-touch shh
+touch ssh
 ```
 
 Then in the same directory, create password hash, copy, then assign it to an user.
@@ -73,5 +73,33 @@ sudo chmod 644 /lib/firmware/iwlwifi-gl-c0-fm-c0-*.ucode
 
 WPA supplicant handles WiFi implementation, login, security ... This is often not shipped with WiFi7 or MLO enabled.
 
+```bash
+git clone https://github.com/2lian/raspberrypi_zenoh_redundant_mesh.git ~/raspberrypi_zenoh_redundant_mesh
 
+sudo apt install build-essential git pkg-config libssl-dev libnl-3-dev libnl-genl-3-dev libdbus-1-dev iw libnl-route-3-dev
+git clone https://git.w1.fi/hostap.git ~/hostap || true
 
+case "$(uname -m)" in
+    aarch64)
+        export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/lib/aarch64-linux-gnu/pkgconfig/"
+        ;;
+    x86_64)
+        export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/lib/x86_64-linux-gnu/pkgconfig/"
+        ;;
+esac
+
+cd ~/hostap
+cd wpa_supplicant/
+cp ~/raspberrypi_zenoh_redundant_mesh/wpa_config .config
+make clean
+make -j$(nproc)
+sudo cp /sbin/wpa_supplicant /sbin/wpa_supplicant.bak
+sudo cp -f wpa_supplicant /sbin/
+wpa_supplicant -v
+```
+
+# Testing if it works
+
+```bash
+iw dev
+```
