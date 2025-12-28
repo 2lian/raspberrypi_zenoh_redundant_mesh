@@ -4,6 +4,11 @@ channels = ["conda-forge"]
 name = "zemesh"
 platforms = ["linux-64", "linux-aarch64"]
 
+[activation.env]
+RUST_LOG = "debug"
+ZENOH_ROUTER_CONFIG_URI = ""
+ZENOH_SESSION_CONFIG_URI = ""
+
 [pypi-dependencies]
 elian_experiment = { path = ".", editable=true}
 

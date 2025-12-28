@@ -9,7 +9,7 @@
   // id: "1234567890abcdef",
 
   /// The node's mode (router, peer or client)
-  mode: "peer",
+  mode: "client",
 
   /// The node's metadata (name, location, DNS name, etc.) Arbitrary JSON data not interpreted by zenoh and available in admin space @/<zid>/router, @/<zid>/peer or @/<zid>/client
   metadata: {
@@ -46,8 +46,8 @@
     ///
     /// See https://docs.rs/zenoh/latest/zenoh/config/struct.EndPoint.html
     endpoints: [
-        "udp/localhost:7447",
-        "udp/unifi.lan:7447",
+        "tcp/localhost:7447",
+        "tcp/unifi.lan:7447",
     ],
 
     /// Global connect configuration,
@@ -169,7 +169,7 @@
     /// The gossip scouting configuration. Note that instances in "client" mode do not participate in gossip.
     gossip: {
       /// Whether gossip scouting is enabled or not
-      enabled: false,
+      enabled: true,
       /// When true, gossip scouting information are propagated multiple hops to all nodes in the local network.
       /// When false, gossip scouting information are only propagated to the next hop.
       /// Activating multihop gossip implies more scouting traffic and a lower scalability.

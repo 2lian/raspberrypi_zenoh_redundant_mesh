@@ -12,12 +12,17 @@ async def mirror_echo(sub: afor.Sub, pub: zenoh.Publisher):
     async for msg in sub.listen_reliable():
         data = json.loads(msg.payload.to_bytes())
         data["target"] = {"time": time.time_ns(), "count": count}
+        count += 1
         print("got: \n", json.dumps(data, indent=2))
         reply = json.dumps(data)
         pub.put(reply)
 
 async def main():
-    ses = afor.auto_session()
+    config = zenoh.Config.from_file(
+        "/home/elian/raspberrypi_zenoh_redundant_mesh/zenoh_config/client.json5"
+    )
+    ses = zenoh.open(config)
+    afor.set_auto_session(ses)
     sub = afor.Sub(f"{ID}/request")
     pub = ses.declare_publisher(f"{ID}/response")
     try:
