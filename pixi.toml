@@ -1,0 +1,15 @@
+[workspace]
+authors = ["Elian NEPPEL <elian.dev@posteo.com>"]
+channels = ["conda-forge"]
+name = "zemesh"
+platforms = ["linux-64", "linux-aarch64"]
+
+[pypi-dependencies]
+elian_experiment = { path = ".", editable=true}
+
+[dependencies]
+python = ">=3.11,<3.15"
+colorama = "*"
+pytest = "*"
+pytest-asyncio = "*"
+zenoh = ">=1.7.1,<2"

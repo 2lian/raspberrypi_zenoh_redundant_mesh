@@ -1,0 +1,44 @@
+[project]
+name = "elian_experiment"
+version = "0.1.0"
+description = "..."
+readme = "README.md"
+license = "MIT"
+authors = [
+  { name = "Elian NEPPEL", email = "elian.dev@posteo.com" }
+]
+requires-python = ">=3.11,<3.15"
+keywords = ["..."]
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Developers",
+  "Natural Language :: English",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Operating System :: POSIX :: Linux",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Software Development :: Embedded Systems",
+  "Topic :: System :: Networking",
+  "Framework :: AsyncIO",
+]
+
+dependencies = [
+"asyncio_for_robotics",
+"eclipse-zenoh",
+]
+
+[build-system]
+requires = ["setuptools >= 58.2.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["elian_experiment", "elian_experiment.*"]
+
+[project.urls]
+Homepage = "https://github.com/2lian/raspberrypi_zenoh_redundant_mesh"
+Repository = "https://github.com/2lian/raspberrypi_zenoh_redundant_mesh"
+Issues = "https://github.com/2lian/raspberrypi_zenoh_redundant_mesh/issues"
