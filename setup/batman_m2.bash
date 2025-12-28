@@ -9,6 +9,9 @@ sudo ip link set $BAT_CARD up
 
 sudo iw dev $BAT_CARD mesh join mesh0 freq 2412
 
+sudo iw dev $W7_CARD set power_save off
+sudo iw dev $BAT_CARD set power_save off
+
 sudo batctl if add $BAT_CARD
 sudo batctl if add $W7_CARD
 sudo ip link set up dev bat0
