@@ -67,9 +67,12 @@ The firmware for the be200 is not included in the kernel, we need to download it
 ```bash
 cd /tmp
 wget https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/plain/intel/iwlwifi/iwlwifi-gl-c0-fm-c0-{90,92,94,96,97,98,100,101}.ucode
+wget https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/plain/intel/iwlwifi/iwlwifi-gl-c0-fm-c0.pnvm
 
 sudo cp iwlwifi-gl-c0-fm-c0-*.ucode /lib/firmware/
+sudo cp iwlwifi-gl-c0-fm-c0.pnvm /lib/firmware/
 sudo chmod 644 /lib/firmware/iwlwifi-gl-c0-fm-c0-*.ucode
+sudo chmod 644 /lib/firmware/iwlwifi-gl-c0-fm-c0.pnvm
 ```
 
 # WPA supplicant update to v2.12
