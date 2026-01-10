@@ -9,7 +9,7 @@
   // id: "1234567890abcdef",
 
   /// The node's mode (router, peer or client)
-  mode: "client",
+  mode: "router",
 
   /// The node's metadata (name, location, DNS name, etc.) Arbitrary JSON data not interpreted by zenoh and available in admin space @/<zid>/router, @/<zid>/peer or @/<zid>/client
   metadata: {
@@ -46,9 +46,10 @@
     ///
     /// See https://docs.rs/zenoh/latest/zenoh/config/struct.EndPoint.html
     endpoints: [
-        "tcp/localhost:7447",
-        // "tcp/unifi.lan:7447",
-        // "udp/unifi.lan:7448",
+        // "tcp/localhost:7447",
+        "udp/unifi.lan:7448#iface=wlanAP",
+        // "udp/unifi.lan:7448#iface=wlan1",
+        // "udp/unifi.lan:7448#iface=wlan2",
     ],
 
     /// Global connect configuration,
@@ -96,7 +97,16 @@
     /// or different lists for router, peer and client (e.g. endpoints: { router: ["tcp/[::]:7447"], peer: ["tcp/[::]:0"] }).
     ///
     /// See https://docs.rs/zenoh/latest/zenoh/config/struct.EndPoint.html
-    endpoints: { router: ["tcp/[::]:7447"], peer: ["tcp/[::]:0"] },
+    endpoints: { router: [
+        "tcp/localhost:7447",
+        // "tcp/[::]:7448#iface=lo",
+        // "udp/[::]:7448#iface=wlanAP",
+        // "udp/[::]:7449",
+        // "udp/10.42.42.12:7449",
+        "udp/[::]:7449#iface=bat0",
+    ], 
+        // peer: ["tcp/[::]:0"] 
+    },
 
     /// Global listen configuration,
     /// Accepts a single value or different values for router, peer and client.
@@ -139,18 +149,18 @@
     /// The multicast scouting configuration.
     multicast: {
       /// Whether multicast scouting is enabled or not
-      enabled: false,
+      enabled: true,
       /// The socket which should be used for multicast scouting
       address: "224.0.0.224:7446",
       /// The network interface which should be used for multicast scouting
-      interface: "auto", // If not set or set to "auto" the interface if picked automatically
+      interface: "bat0", // If not set or set to "auto" the interface if picked automatically
       /// The time-to-live on multicast scouting packets
       ttl: 1,
       /// Which type of Zenoh instances to automatically establish sessions with upon discovery on UDP multicast.
       /// Accepts a single value (e.g. autoconnect: ["router", "peer"]) which applies whatever the configured "mode" is,
       /// or different values for router, peer or client mode (e.g. autoconnect: { router: [], peer: ["router", "peer"] }).
       /// Each value is a list of: "peer", "router" and/or "client".
-      autoconnect: { router: [], peer: ["router", "peer"], client: ["router"] },
+      autoconnect: { router: ["router"], peer: ["router", "peer"], client: ["router"] },
       /// Strategy for autoconnection, mainly to avoid nodes connecting to each other redundantly.
       /// Possible options are:
       /// - "always": always attempt to autoconnect, may result in redundant connections.
@@ -186,7 +196,7 @@
       /// Accepts a single value (e.g. autoconnect: ["router", "peer"]) which applies whatever the configured "mode" is,
       /// or different values for router or peer mode (e.g. autoconnect: { router: [], peer: ["router", "peer"] }).
       /// Each value is a list of: "peer" and/or "router".
-      autoconnect: { router: [], peer: ["router", "peer"] },
+      autoconnect: { router: ["router"], peer: ["router", "peer"] },
       /// Strategy for autoconnection, mainly to avoid nodes connecting to each other redundantly.
       /// Possible options are:
       /// - "always": always attempt to autoconnect, may result in redundant connections.
@@ -604,7 +614,7 @@
         /// Accepted values: 8bit, 16bit, 32bit, 64bit.
         sequence_number_resolution: "32bit",
         /// Link lease duration in milliseconds to announce to other zenoh nodes
-        lease: 10000,
+        lease: 1000,
         /// Number of keep-alive messages in a link lease duration. If no data is sent, keep alive
         /// messages will be sent at the configured time interval.
         /// NOTE: In order to consider eventual packet loss and transmission latency and jitter,
@@ -948,3 +958,5 @@
   //   }
   // },
 }
+
+ 

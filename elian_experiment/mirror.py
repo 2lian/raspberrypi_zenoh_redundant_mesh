@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import suppress
+import os
 import time
 import json
 import zenoh
@@ -19,7 +20,7 @@ async def mirror_echo(sub: afor.Sub, pub: zenoh.Publisher):
 
 async def main():
     config = zenoh.Config.from_file(
-        "/home/elian/raspberrypi_zenoh_redundant_mesh/zenoh_config/client.json5"
+        os.path.expanduser("~/raspberrypi_zenoh_redundant_mesh/zenoh_config/client.json5")
     )
     ses = zenoh.open(config)
     afor.set_auto_session(ses)

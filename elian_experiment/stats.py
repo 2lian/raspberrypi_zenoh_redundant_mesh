@@ -12,7 +12,7 @@ from colorama import Fore
 
 async def main():
     p = subprocess.Popen(
-        ["ssh", "unifi"],
+        ["ssh", "pe1"],
         stdin=subprocess.PIPE,
         text=True,
     )

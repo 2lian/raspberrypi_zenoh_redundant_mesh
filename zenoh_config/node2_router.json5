@@ -47,7 +47,9 @@
     /// See https://docs.rs/zenoh/latest/zenoh/config/struct.EndPoint.html
     endpoints: [
         // "tcp/localhost:7447",
-        "udp/unifi.lan:7448",
+        "udp/unifi.lan:7448#iface=wlan1",
+        // "udp/unifi.lan:7448#iface=wlan1",
+        // "udp/unifi.lan:7448#iface=wlan2",
     ],
 
     /// Global connect configuration,
@@ -138,18 +140,18 @@
     /// The multicast scouting configuration.
     multicast: {
       /// Whether multicast scouting is enabled or not
-      enabled: false,
+      enabled: true,
       /// The socket which should be used for multicast scouting
       address: "224.0.0.224:7446",
       /// The network interface which should be used for multicast scouting
-      interface: "auto", // If not set or set to "auto" the interface if picked automatically
+      interface: "wlan1", // If not set or set to "auto" the interface if picked automatically
       /// The time-to-live on multicast scouting packets
       ttl: 1,
       /// Which type of Zenoh instances to automatically establish sessions with upon discovery on UDP multicast.
       /// Accepts a single value (e.g. autoconnect: ["router", "peer"]) which applies whatever the configured "mode" is,
       /// or different values for router, peer or client mode (e.g. autoconnect: { router: [], peer: ["router", "peer"] }).
       /// Each value is a list of: "peer", "router" and/or "client".
-      autoconnect: { router: [], peer: ["router", "peer"], client: ["router"] },
+      autoconnect: { router: ["router"], peer: ["router", "peer"], client: ["router"] },
       /// Strategy for autoconnection, mainly to avoid nodes connecting to each other redundantly.
       /// Possible options are:
       /// - "always": always attempt to autoconnect, may result in redundant connections.
@@ -949,3 +951,4 @@
 }
 
  
+
