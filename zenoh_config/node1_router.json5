@@ -614,7 +614,7 @@
         /// Accepted values: 8bit, 16bit, 32bit, 64bit.
         sequence_number_resolution: "32bit",
         /// Link lease duration in milliseconds to announce to other zenoh nodes
-        lease: 1000,
+        lease: 10000,
         /// Number of keep-alive messages in a link lease duration. If no data is sent, keep alive
         /// messages will be sent at the configured time interval.
         /// NOTE: In order to consider eventual packet loss and transmission latency and jitter,
