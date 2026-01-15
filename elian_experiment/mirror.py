@@ -25,7 +25,16 @@ async def main():
     ses = zenoh.open(config)
     afor.set_auto_session(ses)
     sub = afor.Sub(f"{ID}/request")
-    pub = ses.declare_publisher(f"{ID}/response")
+    # pub = ses.declare_publisher(f"{ID}/response")
+    pub = zenoh.ext.declare_advanced_publisher(
+        ses,
+        f"{ID}/response",
+        cache=zenoh.ext.CacheConfig(max_samples=100),
+        sample_miss_detection=zenoh.ext.MissDetectionConfig(
+            heartbeat=5, sporadic_heartbeat=5
+        ),
+        publisher_detection=True,
+    )
     try:
         await mirror_echo(sub, pub)
     finally:

@@ -47,7 +47,7 @@
     /// See https://docs.rs/zenoh/latest/zenoh/config/struct.EndPoint.html
     endpoints: [
         // "tcp/localhost:7447",
-        "udp/unifi.lan:7448#iface=wlanAP",
+        "tcp/unifi.lan:7447#iface=wlanAP",
         // "udp/unifi.lan:7448#iface=wlan1",
         // "udp/unifi.lan:7448#iface=wlan2",
     ],
@@ -98,12 +98,12 @@
     ///
     /// See https://docs.rs/zenoh/latest/zenoh/config/struct.EndPoint.html
     endpoints: { router: [
-        "tcp/localhost:7447",
+        "tcp/[::]:7447#iface=lo",
         // "tcp/[::]:7448#iface=lo",
         // "udp/[::]:7448#iface=wlanAP",
         // "udp/[::]:7449",
         // "udp/10.42.42.12:7449",
-        "udp/[::]:7449#iface=bat0",
+        "tcp/[::]:7449#iface=bat0",
     ], 
         // peer: ["tcp/[::]:0"] 
     },
@@ -180,7 +180,7 @@
     /// The gossip scouting configuration. Note that instances in "client" mode do not participate in gossip.
     gossip: {
       /// Whether gossip scouting is enabled or not
-      enabled: true,
+      enabled: false,
       /// When true, gossip scouting information are propagated multiple hops to all nodes in the local network.
       /// When false, gossip scouting information are only propagated to the next hop.
       /// Activating multihop gossip implies more scouting traffic and a lower scalability.
@@ -209,7 +209,7 @@
       /// (e.g. autoconnect_strategy : { to_router:  "always", to_peer: "greater-zid" }),
       /// or different values for router or peer mode
       /// (e.g. autoconnect_strategy : { peer: { to_router:  "always", to_peer: "greater-zid" } }).
-      autoconnect_strategy: { peer: { to_router: "always", to_peer: "always" } },
+      autoconnect_strategy: { router: { to_router: "always"}, peer: { to_router: "always", to_peer: "always" } },
     },
   },
 
@@ -236,7 +236,7 @@
       /// connected to each other.
       /// The failover brokering only works if gossip discovery is enabled
       /// and peers are configured with gossip target "router".
-      peers_failover_brokering: true,
+      peers_failover_brokering: false,
       /// Linkstate mode configuration.
       linkstate: {
         /// Weights of the outgoing transports in linkstate mode.
