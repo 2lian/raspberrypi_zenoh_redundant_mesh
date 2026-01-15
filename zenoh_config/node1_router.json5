@@ -614,7 +614,7 @@
         /// Accepted values: 8bit, 16bit, 32bit, 64bit.
         sequence_number_resolution: "32bit",
         /// Link lease duration in milliseconds to announce to other zenoh nodes
-        lease: 10000,
+        lease: 1000,
         /// Number of keep-alive messages in a link lease duration. If no data is sent, keep alive
         /// messages will be sent at the configured time interval.
         /// NOTE: In order to consider eventual packet loss and transmission latency and jitter,
@@ -688,7 +688,8 @@
         /// For very high throughput scenarios, the rx_buffer_size can be increased to accommodate
         /// more in-flight data. This is particularly relevant when dealing with large messages.
         /// E.g. for 16MiB rx_buffer_size set the value to: 16777216.
-        buffer_size: 65535,
+        // buffer_size: 65535,
+        buffer_size: 16777216,
         /// Maximum size of the defragmentation buffer at receiver end.
         /// Fragmented messages that are larger than the configured size will be dropped.
         /// The default value is 1GiB. This would work in most scenarios.

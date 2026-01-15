@@ -677,7 +677,8 @@
         /// For very high throughput scenarios, the rx_buffer_size can be increased to accommodate
         /// more in-flight data. This is particularly relevant when dealing with large messages.
         /// E.g. for 16MiB rx_buffer_size set the value to: 16777216.
-        buffer_size: 65535,
+        // buffer_size: 65535,
+        buffer_size: 16777216,
         /// Maximum size of the defragmentation buffer at receiver end.
         /// Fragmented messages that are larger than the configured size will be dropped.
         /// The default value is 1GiB. This would work in most scenarios.

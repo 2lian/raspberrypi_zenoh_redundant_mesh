@@ -4,9 +4,9 @@ set -e -o pipefail
 export RCUTILS_CONSOLE_OUTPUT_FORMAT="{message}"
 export RCUTILS_COLORIZED_OUTPUT=1
 
-# SSH_ADDRESS=unifi
+SSH_ADDRESS=unifi
 # SSH_ADDRESS=pe1
-SSH_ADDRESS=pe2
+# SSH_ADDRESS=pe2
 SOURCE_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"/..
 DESTINATION_DIR="${SSH_ADDRESS}:~/raspberrypi_zenoh_redundant_mesh/"
 

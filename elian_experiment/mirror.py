@@ -6,6 +6,8 @@ import json
 import zenoh
 import asyncio_for_robotics.zenoh as afor
 
+from elian_experiment.adv_sub import AdvancedSub
+
 ID = "mesh_1"
 
 async def mirror_echo(sub: afor.Sub, pub: zenoh.Publisher):
@@ -24,14 +26,15 @@ async def main():
     )
     ses = zenoh.open(config)
     afor.set_auto_session(ses)
-    sub = afor.Sub(f"{ID}/request")
+    # sub = afor.Sub(f"{ID}/request")
+    sub = AdvancedSub(f"{ID}/request")
     # pub = ses.declare_publisher(f"{ID}/response")
     pub = zenoh.ext.declare_advanced_publisher(
         ses,
         f"{ID}/response",
         cache=zenoh.ext.CacheConfig(max_samples=100),
         sample_miss_detection=zenoh.ext.MissDetectionConfig(
-            heartbeat=5, sporadic_heartbeat=5
+            heartbeat=1, sporadic_heartbeat=None
         ),
         publisher_detection=True,
     )
