@@ -29,6 +29,7 @@ classifiers = [
 dependencies = [
 "asyncio_for_robotics",
 "eclipse-zenoh",
+"foxglove-sdk",
 ]
 
 [build-system]
