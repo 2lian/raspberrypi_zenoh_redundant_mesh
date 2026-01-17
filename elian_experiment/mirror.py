@@ -1,28 +1,40 @@
 import asyncio
-from contextlib import suppress
+import json
 import os
 import time
-import json
-import zenoh
+from contextlib import suppress
+
 import asyncio_for_robotics.zenoh as afor
+import zenoh
 
 from elian_experiment.adv_sub import AdvancedSub
 
 ID = "mesh_1"
+print("hey")
+print("hey")
+print("hey")
+
 
 async def mirror_echo(sub: afor.Sub, pub: zenoh.Publisher):
     count = 0
     async for msg in sub.listen_reliable():
         data = json.loads(msg.payload.to_bytes())
-        data["target"] = {"time": time.time_ns(), "count": count}
-        count += 1
-        print("got: \n", json.dumps(data, indent=2))
+        data["target"] = {
+            "time": time.time_ns(),
+            # "count": count,
+        }
+        # count += 1
         reply = json.dumps(data)
         pub.put(reply)
+        del data["source"]["data"]
+        print("got: \n", json.dumps(data, indent=2))
+
 
 async def main():
     config = zenoh.Config.from_file(
-        os.path.expanduser("~/raspberrypi_zenoh_redundant_mesh/zenoh_config/client.json5")
+        os.path.expanduser(
+            "~/raspberrypi_zenoh_redundant_mesh/zenoh_config/node_client.json5"
+        )
     )
     ses = zenoh.open(config)
     afor.set_auto_session(ses)
@@ -39,10 +51,18 @@ async def main():
         publisher_detection=True,
     )
     try:
+        print("hey")
+        print("hey")
+        print("hey")
         await mirror_echo(sub, pub)
     finally:
+        print("hey")
+        print("hey")
+        print("hey")
         pub.undeclare()
         sub.close()
+        ses.close()
+
 
 if __name__ == "__main__":
     with suppress(KeyboardInterrupt):

@@ -19,6 +19,10 @@ KB = 1024**1 * scaling
 MB = 1024**2 * scaling
 GB = 1024**3 * scaling
 
+_payload = os.urandom(int(1_00 * KB))
+DATA = base64.b64encode(_payload).decode("ascii")
+del _payload
+
 
 async def loop_it(sub: afor.Sub, pub: zenoh.Publisher):
     count = 0
@@ -26,65 +30,68 @@ async def loop_it(sub: afor.Sub, pub: zenoh.Publisher):
     def send_payload():
         nonlocal count, pub
         data = {}
-        payload = os.urandom(int(40 * KB))
         data["source"] = {
             "time": time.time_ns(),
             "count": count,
-            "data": base64.b64encode(payload).decode("ascii"),
+            "data": DATA,
         }
         # print(json.dumps(data, indent=2))
         request = json.dumps(data)
         pub.put(request)
+        count += 1
 
     async def send_when_stale():
-        nonlocal sub, count
+        nonlocal sub
         while 1:
             result = await afor.soft_wait_for(sub.wait_for_next(), 2)
             if isinstance(result, TimeoutError):
                 print(f"{Fore.RED}Stale, sending new payload.{Fore.RESET}")
                 send_payload()
 
-    async def print_return():
-        nonlocal sub, count
-        async for pong_raw in sub.listen_reliable():
-            pong = json.loads(pong_raw.payload.to_bytes())
-            pong["target"]["time"] = int(pong["target"]["time"]) - int(
-                pong["source"]["time"]
-            )
-            pong["return"] = {"time": time.time_ns() - int(pong["source"]["time"])}
-            for k in pong.values():
-                k["time"] = f"{int(k["time"]):_}"
-            try:
-                del pong["source"]["data"]
-            except KeyError:
-                pass
-            print("round-trip: ", pong["return"]["time"])
-            # print("returned: \n", json.dumps(pong, indent=2))
-            if pong["source"]["count"] != count:
-                print(f"{Fore.YELLOW}COUNT DISCREPENCY{Fore.RESET}")
+    def print_return(pong_raw: zenoh.Sample, count: int):
+        pong = json.loads(pong_raw.payload.to_bytes())
+        byte_size = len(pong_raw.payload.to_bytes())
+        pong["target"]["time"] = int(pong["target"]["time"]) - int(
+            pong["source"]["time"]
+        )
+        pong["return"] = {"time": time.time_ns() - int(pong["source"]["time"])}
+        for k in pong.values():
+            k["time"] = f"{int(k["time"]):_}"
+        try:
+            del pong["source"]["data"]
+        except KeyError:
+            pass
+        print("size: ", byte_size)
+        print("half-trip: ", pong["target"]["time"])
+        print("round-trip: ", pong["return"]["time"])
+        # print("returned: \n", json.dumps(pong, indent=2))
+        if pong["source"]["count"] != count-1:
+            print(f"{Fore.YELLOW}COUNT DISCREPENCY{Fore.RESET}")
 
     async def loop():
         nonlocal sub, count
-        async for msg in sub.listen_reliable():
-            msg = json.loads(msg.payload.to_bytes())
-            if msg["source"]["count"] != count:
+        async for msg_raw in sub.listen_reliable():
+            msg = json.loads(msg_raw.payload.to_bytes())
+            if msg["source"]["count"] != count-1:
                 print(f"{Fore.CYAN}Stale payload received :) yey.{Fore.RESET}")
                 continue
-            count += 1
+            asyncio.get_event_loop().call_soon(print_return, msg_raw, count)
             send_payload()
 
     loop_task = asyncio.create_task(loop())
-    print_task = asyncio.create_task(print_return())
     unstale_task = asyncio.create_task(send_when_stale())
+    send_payload()
     try:
         await asyncio.wait(
-        [loop_task, print_task, unstale_task], return_when=asyncio.FIRST_COMPLETED
-    )
+            [loop_task, unstale_task], return_when=asyncio.FIRST_COMPLETED
+        )
+        print("ruh ho")
+        print(loop_task.done())
+        print(unstale_task.done())
     finally:
         loop_task.cancel()
-        print_task.cancel()
         unstale_task.cancel()
-
+        await asyncio.wait([loop_task, unstale_task])
 
 
 async def ping_it(sub: afor.Sub, pub: zenoh.Publisher):
@@ -149,9 +156,10 @@ async def main():
     try:
         await loop_it(sub, pub)
     finally:
+        # print("closing")
         pub.undeclare()
         sub.close()
-        # ses.close()
+        ses.close()
 
 
 if __name__ == "__main__":

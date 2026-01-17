@@ -638,14 +638,14 @@
           /// then amount of memory being allocated for each queue is SIZE_XXX * LINK_MTU.
           /// If qos is false, then only the DATA priority will be allocated.
           size: {
-            control: 2,
-            real_time: 2,
-            interactive_high: 2,
-            interactive_low: 2,
-            data_high: 2,
-            data: 2,
-            data_low: 2,
-            background: 2,
+            control: 10,
+            real_time: 10,
+            interactive_high: 10,
+            interactive_low: 10,
+            data_high: 10,
+            data: 10,
+            data_low: 10,
+            background: 10,
           },
           /// Congestion occurs when the queue is empty (no available batch).
           congestion_control: {
