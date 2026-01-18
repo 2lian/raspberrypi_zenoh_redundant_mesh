@@ -1,9 +1,8 @@
-import asyncio
+from contextlib import suppress
 import json
 import os
 import subprocess
 import time
-from contextlib import suppress
 from typing import Awaitable, Dict, Optional
 
 import asyncio_for_robotics.textio as afor_textio
@@ -13,67 +12,16 @@ import foxglove.schemas as schemas
 import pytest
 import zenoh
 from colorama import Fore
-
-# from mcap.well_known import MessageEncoding, SchemaEncoding
-# from mcap.writer import Writer
 from test_base import loop_it
 
 from elian_experiment.adv_sub import AdvancedSub
+from zenoh_utils import foxlog_zenoh_stdout
+
+pass  # VVV imports fixtures
+from foxglove_bag import bag, log_payload, stdout_topic
+from log_stats import log_node1_iwdev
 
 ID = "mesh_1"
-
-
-@pytest.fixture(scope="module")
-def bag():
-    dir = "output"
-    os.makedirs(dir, exist_ok=True)
-    mcap_file = f"{dir}/data.mcap"
-    print("starting foxglove")
-    with foxglove.open_mcap(mcap_file, allow_overwrite=True):
-        server = foxglove.start_server()
-        print("server")
-        yield
-        server.stop()
-
-
-@pytest.fixture(scope="module")
-def stdout_topic(bag):
-    print("stdout_topic")
-    return foxglove.Channel(
-        "/stdout",
-        schema=schemas.Log.get_schema(),
-        message_encoding=schemas.Log.get_schema().encoding,
-    )
-
-
-def find_zenoh_log_lvl(msg: str) -> int:
-    levels = ["DEBUG", "INFO", "WARNING", "ERROR", "FATAL"]
-    found_lvls = [l for l in levels if l in msg[: min(len(msg), 500)]]
-    lvl = found_lvls[-1] if found_lvls != [] else "INFO"
-    lvl = levels.index(lvl) + 1
-    return lvl
-
-
-def make_mcap_log(
-    msg,
-    timestamp: Optional[int] = None,
-    lvl: schemas.LogLevel | int = schemas.LogLevel.Unknown,
-    name: str = "No name",
-):
-    if timestamp is None:
-        timestamp = time.time_ns()
-
-    return schemas.Log(
-        timestamp=schemas.Timestamp(
-            sec=int(timestamp // 1e9),
-            nsec=int(timestamp % 1e9),
-        ),
-        level=schemas.LogLevel.Info,
-        message=msg,
-        name=name,
-        line=0,
-    ).encode()
-
 
 @pytest.fixture
 def node1_router_proc():
@@ -105,28 +53,15 @@ def node1_router_proc():
         p.wait()
 
 
+
 @pytest.fixture
 async def log_node1_router_stdout(
     node1_router_proc: subprocess.Popen[str], stdout_topic: foxglove.Channel
 ):
     print("node 1")
     stdout_sub = afor_textio.from_proc_stdout(node1_router_proc)
-
-    def log_it(msg: str):
-        if msg is None:
-            return
-        if msg == "":
-            return
-        print(msg)
-        now = time.time_ns()
-        lvl = find_zenoh_log_lvl(msg)
-        stdout_topic.log(
-            msg=make_mcap_log(msg, timestamp=now, lvl=lvl, name="node1 router"),
-            log_time=now,
-        )
-
-    stdout_sub.asap_callback.append(log_it)
-    yield
+    foxlog_zenoh_stdout(stdout_sub, stdout_topic, "node1 router")
+    yield stdout_sub
     stdout_sub.close()
 
 
@@ -166,22 +101,8 @@ async def log_node2_router_stdout(
 ):
     print("node 2")
     stdout_sub = afor_textio.from_proc_stdout(node2_router_proc)
-
-    def log_it(msg: str):
-        if msg is None:
-            return
-        if msg == "":
-            return
-        # print(msg)
-        now = time.time_ns()
-        lvl = find_zenoh_log_lvl(msg)
-        stdout_topic.log(
-            msg=make_mcap_log(msg, timestamp=now, lvl=lvl, name="node2 router"),
-            log_time=now,
-        )
-
-    stdout_sub.asap_callback.append(log_it)
-    yield
+    foxlog_zenoh_stdout(stdout_sub, stdout_topic, "node2 router")
+    yield stdout_sub
     stdout_sub.close()
 
 
@@ -220,25 +141,9 @@ async def log_central_router_stdout(
     central_router_proc: subprocess.Popen[str], stdout_topic: foxglove.Channel
 ):
     stdout_sub = afor_textio.from_proc_stdout(central_router_proc)
-
-    def log_it(msg: str):
-        if msg is None:
-            return
-        if msg == "":
-            return
-        # print(msg)
-        now = time.time_ns()
-        lvl = find_zenoh_log_lvl(msg)
-        stdout_topic.log(
-            msg=make_mcap_log(msg, timestamp=now, lvl=lvl, name="central router"),
-            log_time=now,
-        )
-
-    print("central")
-    stdout_sub.asap_callback.append(log_it)
-    yield
+    foxlog_zenoh_stdout(stdout_sub, stdout_topic, "central router")
+    yield stdout_sub
     stdout_sub.close()
-
 
 @pytest.fixture
 def mirror_proc(node2_router_proc):
@@ -275,23 +180,8 @@ async def log_mirror_stdout(
     mirror_proc: subprocess.Popen[str], stdout_topic: foxglove.Channel
 ):
     stdout_sub = afor_textio.from_proc_stdout(mirror_proc)
-
-    def log_it(msg: str):
-        if msg is None:
-            return
-        if msg == "":
-            return
-        now = time.time_ns()
-        lvl = find_zenoh_log_lvl(msg)
-        print(msg)
-        stdout_topic.log(
-            log_time=now,
-            msg=make_mcap_log(msg, timestamp=now, lvl=lvl, name="mirror"),
-        )
-
-    # stdout_sub.asap_callback.append(log_it)
-    print("mirror")
-    yield
+    foxlog_zenoh_stdout(stdout_sub, stdout_topic, "mirror router")
+    yield stdout_sub
     stdout_sub.close()
 
 
@@ -329,33 +219,6 @@ def pub(z_session):
     p.undeclare()
 
 
-@pytest.fixture
-def log_payload(stdout_topic: foxglove.Channel):
-
-    def log_it(msg: str, count: int):
-        now = time.time_ns()
-        if msg is None:
-            return
-        if msg == "":
-            return
-        pong = json.loads(msg)
-        pong["payload_size"] = len(pong["source"]["data"])
-        try:
-            del pong["source"]["data"]
-        except KeyError:
-            pass
-        pong["total_size"] = len(msg)
-        pong["half_trip"] = int(pong["target"]["time"]) - int(pong["source"]["time"])
-        pong["round_trip"] = now - int(pong["source"]["time"])
-        print(pong)
-        foxglove.log(
-            topic="measurement",
-            log_time=now,
-            message=pong,
-        )
-
-    yield log_it
-
 
 async def test_debug(
     sub,
@@ -364,7 +227,8 @@ async def test_debug(
     log_node2_router_stdout,
     log_central_router_stdout,
     log_mirror_stdout,
-    log_payload,
+    log_node1_iwdev,
     stdout_topic: foxglove.Channel,
 ):
-    await afor.soft_wait_for(loop_it(sub, pub, log_payload), 120)
+    with suppress(KeyboardInterrupt):
+        await afor.soft_wait_for(loop_it(sub, pub, log_payload), 120)
