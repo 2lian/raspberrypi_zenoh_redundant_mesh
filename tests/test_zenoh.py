@@ -19,7 +19,7 @@ from zenoh_utils import foxlog_zenoh_stdout
 
 pass  # VVV imports fixtures
 from foxglove_bag import bag, log_payload, stdout_topic
-from log_stats import log_node1_iwdev
+from log_stats import log_node1_iwdev, log_node1_ips
 
 ID = "mesh_1"
 
@@ -228,6 +228,7 @@ async def test_debug(
     log_central_router_stdout,
     log_mirror_stdout,
     log_node1_iwdev,
+    log_node1_ips,
     stdout_topic: foxglove.Channel,
 ):
     with suppress(KeyboardInterrupt):
