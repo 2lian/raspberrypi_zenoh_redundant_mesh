@@ -19,7 +19,7 @@ KB = 1024**1 * scaling
 MB = 1024**2 * scaling
 GB = 1024**3 * scaling
 
-_payload = os.urandom(int(1 * KB))
+_payload = os.urandom(int(0 * KB))
 DATA = base64.b64encode(_payload).decode("ascii")
 del _payload
 
