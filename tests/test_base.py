@@ -3,14 +3,11 @@ import base64
 import json
 import os
 import time
-from contextlib import suppress
 from typing import Any, Awaitable, Callable, Dict
 
 import asyncio_for_robotics.zenoh as afor
-import zenoh
 from colorama import Fore
 
-from elian_experiment.adv_sub import AdvancedSub
 
 ID = "mesh_1"
 scaling = 1 / 1
@@ -19,7 +16,7 @@ KB = 1024**1 * scaling
 MB = 1024**2 * scaling
 GB = 1024**3 * scaling
 
-_payload = os.urandom(int(0 * KB))
+_payload = os.urandom(int(30 * MB))
 DATA = base64.b64encode(_payload).decode("ascii")
 del _payload
 
@@ -67,7 +64,7 @@ async def loop_it(
     async def send_when_stale():
         nonlocal sub
         while 1:
-            result = await afor.soft_wait_for(sub.wait_for_next(), 2)
+            result = await afor.soft_wait_for(sub.wait_for_next(), 10)
             if isinstance(result, TimeoutError):
                 print(f"{Fore.RED}Stale, sending new payload.{Fore.RESET}")
                 send_payload()

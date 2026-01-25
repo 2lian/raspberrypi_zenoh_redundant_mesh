@@ -31,7 +31,6 @@ def foxlog_zenoh_stdout(
             return
         if msg == "":
             return
-        # print(msg)
         now = time.time_ns()
         lvl = find_zenoh_log_lvl(msg)
         topic.log(

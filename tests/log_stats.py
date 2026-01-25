@@ -3,14 +3,15 @@ import json
 import re
 import subprocess
 import time
+from typing import Optional
 
 import asyncio_for_robotics.textio as afor_textio
 import foxglove
 import pytest
 from foxglove import schemas
 from foxglove.channel import Channel
-from foxglove.schemas import Log
-from foxglove_bag import bag, stdout_topic
+
+from .variables import SSHTargets
 
 
 def parse_iwdev(text: str) -> dict:
@@ -146,69 +147,16 @@ async def monitor_iwdev(ssh_target: str, stdout_topic: Channel):
     accumulate_task = asyncio.create_task(accumlate(sub))
 
     try:
-        yield p
+        yield sub
     finally:
         p.terminate()
         p.wait()
         accumulate_task.cancel()
 
 
-@pytest.fixture
-async def log_node1_iwdev(stdout_topic):
-    async for _ in monitor_iwdev("pe2", stdout_topic):
-        yield
 
-
-def _just_print_iwdev():
-    res = parse_iwdev(
-        """---###---
-stamp: 1768721505997425749
-phy#2
-        Interface wlanMESH
-                ifindex 6
-                wdev 0x200000001
-                addr 24:ec:99:bf:c8:4a
-                type mesh point
-                channel 1 (2412 MHz), width: 20 MHz (no HT), center1: 2412 MHz
-                txpower 30.00 dBm
-                multicast TXQ:
-                        qsz-byt qsz-pkt flows   drops   marks   overlmt hashcol tx-bytes        tx-packets
-                        0       0       9509    0       0       0       0       877252          9515
-phy#1
-        Interface wlanAP
-                ifindex 5
-                wdev 0x100000001
-                addr 5c:b4:7e:8c:0c:8a
-                ssid 2lian-lab
-                type managed
-                multicast TXQ:
-                        qsz-byt qsz-pkt flows   drops   marks   overlmt hashcol tx-bytes        tx-packets
-                        0       0       0       0       0       0       0       0               0
-                MLD with links:
-                 - link ID  0 link addr 1a:a9:99:62:99:0a
-                 - link ID  1 link addr 26:06:32:6d:7b:42
-                 - link ID  2 link addr 62:01:a0:27:73:01
-                   channel 37 (6135 MHz), width: 160 MHz, center1: 6185 MHz
-phy#0
-        Unnamed/non-netdev interface
-                wdev 0x2
-                addr 2e:cf:67:43:02:ea
-                type P2P-device
-                txpower 31.00 dBm
-        Interface wlan0
-                ifindex 4
-                wdev 0x1
-                addr 2c:cf:67:43:02:ea
-                type managed
-                channel 36 (5180 MHz), width: 20 MHz, center1: 5180 MHz
-                txpower 31.00 dBm"""
-    )
-    print(json.dumps(res, indent=2))
-
-_PREV_IPS = None
-
-def parse_ips(text: str) -> dict:
-    global _PREV_IPS
+def parse_ips(text: str, previous_result: Optional[dict]) -> dict:
+    _PREV_IPS = previous_result
     interfaces = {}
     current = None
     pending_stats = None
@@ -224,7 +172,6 @@ def parse_ips(text: str) -> dict:
                 "sec": int(now // 1e9),
                 "nsec": int(now % 1e9),
             }
-
 
         # Interface header (minimal assumptions)
         m = re.match(r"^(\d+):\s+([^:]+):\s+<([^>]*)>\s+(.*)$", stripped)
@@ -273,10 +220,7 @@ def parse_ips(text: str) -> dict:
 
     # ---- rate computation ----
     if _PREV_IPS is not None:
-        dt = (
-            interfaces["header"]["time"]
-            - _PREV_IPS["header"]["time"]
-        ) / 1e9
+        dt = (interfaces["header"]["time"] - _PREV_IPS["header"]["time"]) / 1e9
 
         if dt > 0:
             for name, iface in interfaces.items():
@@ -299,6 +243,122 @@ def parse_ips(text: str) -> dict:
     _PREV_IPS = interfaces
 
     return interfaces
+
+
+async def monitor_ips(ssh_target: str, stdout_topic: Channel):
+    p = subprocess.Popen(
+        [
+            "ssh",
+            ssh_target,
+            r"""while :; do printf "stamp: %s\n%s\n" "$(date +%s%N)" "$(ip -s link)"; sleep 1; done""",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        stdin=subprocess.PIPE,
+        text=True,
+    )
+    sub = afor_textio.from_proc_stdout(p, pre_process=lambda x: x)
+
+    previous_parsed = None
+
+    def log_it(msg: str):
+        nonlocal previous_parsed
+        if msg is None:
+            return
+        if msg == "":
+            return
+        now = time.time_ns()
+        parsed = parse_ips(msg, previous_parsed)
+        previous_parsed = parsed
+        foxglove.log(
+            topic=f"/ips/{ssh_target}",
+            message=parsed,
+            log_time=now,
+        )
+
+    def log_log_it(msg: str):
+        if msg is None:
+            return
+        if msg == "":
+            return
+        now = time.time_ns()
+        stdout_topic.log(
+            msg=schemas.Log(
+                timestamp=schemas.Timestamp.now(),
+                level=schemas.LogLevel.Info,
+                message=msg,
+                name=f"ips {ssh_target}",
+            ).encode(),
+            log_time=now,
+        )
+
+    async def accumlate(sub: afor_textio.Sub):
+        buffer = []
+        async for line in sub.listen_reliable():
+            if line.startswith("stamp: "):
+                if buffer != []:
+                    text = "".join(buffer)
+                    log_log_it(text)
+                    log_it(text)
+                    buffer = []
+            buffer.append(line)
+
+    accumulate_task = asyncio.create_task(accumlate(sub))
+
+    try:
+        yield p
+    finally:
+        p.terminate()
+        p.wait()
+        accumulate_task.cancel()
+
+
+def _just_print_iwdev():
+    res = parse_iwdev(
+        """---###---
+stamp: 1768721505997425749
+phy#2
+        Interface wlanMESH
+                ifindex 6
+                wdev 0x200000001
+                addr 24:ec:99:bf:c8:4a
+                type mesh point
+                channel 1 (2412 MHz), width: 20 MHz (no HT), center1: 2412 MHz
+                txpower 30.00 dBm
+                multicast TXQ:
+                        qsz-byt qsz-pkt flows   drops   marks   overlmt hashcol tx-bytes        tx-packets
+                        0       0       9509    0       0       0       0       877252          9515
+phy#1
+        Interface wlanAP
+                ifindex 5
+                wdev 0x100000001
+                addr 5c:b4:7e:8c:0c:8a
+                ssid 2lian-lab
+                type managed
+                multicast TXQ:
+                        qsz-byt qsz-pkt flows   drops   marks   overlmt hashcol tx-bytes        tx-packets
+                        0       0       0       0       0       0       0       0               0
+                MLD with links:
+                 - link ID  0 link addr 1a:a9:99:62:99:0a
+                 - link ID  1 link addr 26:06:32:6d:7b:42
+                 - link ID  2 link addr 62:01:a0:27:73:01
+                   channel 37 (6135 MHz), width: 160 MHz, center1: 6185 MHz
+phy#0
+        Unnamed/non-netdev interface
+                wdev 0x2
+                addr 2e:cf:67:43:02:ea
+                type P2P-device
+                txpower 31.00 dBm
+        Interface wlan0
+                ifindex 4
+                wdev 0x1
+                addr 2c:cf:67:43:02:ea
+                type managed
+                channel 36 (5180 MHz), width: 20 MHz, center1: 5180 MHz
+                txpower 31.00 dBm"""
+    )
+    print(json.dumps(res, indent=2))
+
 
 def _just_print_ips():
     res = parse_ips(
@@ -343,77 +403,11 @@ def _just_print_ips():
     RX:  bytes packets errors dropped  missed   mcast
       35850683   81854      0       0       0       0
     TX:  bytes packets errors dropped carrier collsns
-      36750982   82306      0      96       0       0"""
+      36750982   82306      0      96       0       0""",
+        None,
     )
     print(json.dumps(res, indent=2))
 
-async def monitor_ips(ssh_target: str, stdout_topic: Channel):
-    p = subprocess.Popen(
-        [
-            "ssh",
-            ssh_target,
-            r"""while :; do printf "stamp: %s\n%s\n" "$(date +%s%N)" "$(ip -s link)"; sleep 1; done""",
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        stdin=subprocess.PIPE,
-        text=True,
-    )
-    sub = afor_textio.from_proc_stdout(p, pre_process=lambda x: x)
-
-    def log_it(msg: str):
-        if msg is None:
-            return
-        if msg == "":
-            return
-        now = time.time_ns()
-        # print(json.dumps(parse_iwdev(msg)))
-        foxglove.log(
-            topic=f"/ips/{ssh_target}",
-            message=parse_ips(msg),
-            log_time=now,
-        )
-
-    def log_log_it(msg: str):
-        if msg is None:
-            return
-        if msg == "":
-            return
-        now = time.time_ns()
-        stdout_topic.log(
-            msg=schemas.Log(
-                timestamp=schemas.Timestamp.now(),
-                level=schemas.LogLevel.Info,
-                message=msg,
-                name=f"ips {ssh_target}",
-            ).encode(),
-            log_time=now,
-        )
-
-    async def accumlate(sub: afor_textio.Sub):
-        buffer = []
-        async for line in sub.listen_reliable():
-            if line.startswith("stamp: "):
-                if buffer != []:
-                    text = "".join(buffer)
-                    log_log_it(text)
-                    log_it(text)
-                    buffer = []
-            buffer.append(line)
-
-    accumulate_task = asyncio.create_task(accumlate(sub))
-
-    try:
-        yield p
-    finally:
-        p.terminate()
-        p.wait()
-        accumulate_task.cancel()
-
-@pytest.fixture
-async def log_node1_ips(stdout_topic):
-    async for _ in monitor_ips("pe2", stdout_topic):
-        yield
 
 if __name__ == "__main__":
     _just_print_ips()

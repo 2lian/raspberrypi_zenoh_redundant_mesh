@@ -27,7 +27,7 @@ async def mirror_echo(sub: afor.Sub, pub: zenoh.Publisher):
         reply = json.dumps(data)
         pub.put(reply)
         del data["source"]["data"]
-        print("got: \n", json.dumps(data, indent=2))
+        # print("got: \n", json.dumps(data, indent=2))
 
 
 async def main():

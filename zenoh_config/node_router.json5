@@ -47,10 +47,10 @@
     /// See https://docs.rs/zenoh/latest/zenoh/config/struct.EndPoint.html
     endpoints: [
         // "tcp/localhost:7447",
-        // "tcp/unifi.lan:7447#iface=wlanAP",
-        "udp/unifi.lan:7448#iface=wlanAP",
-        // "udp/unifi.lan:7448#iface=wlan1",
-        // "udp/unifi.lan:7448#iface=wlan2",
+        "tcp/central.lan:7447#iface=wlanAP",
+        // "udp/central.lan:7448#iface=wlanAP",
+        // "udp/central.lan:7448#iface=wlan1",
+        // "udp/central.lan:7448#iface=wlan2",
     ],
 
     /// Global connect configuration,
@@ -100,11 +100,8 @@
     /// See https://docs.rs/zenoh/latest/zenoh/config/struct.EndPoint.html
     endpoints: { router: [
         "tcp/[::]:7447#iface=lo",
-        // "tcp/[::]:7448#iface=lo",
-        // "udp/[::]:7448#iface=wlanAP",
-        // "udp/[::]:7449",
-        // "udp/10.42.42.12:7449",
-        "udp/[::]:7449#iface=bat0",
+        "tcp/[::]:7449#iface=bat0",
+        // "udp/[::]:7449#iface=bat0",
     ], 
         // peer: ["tcp/[::]:0"] 
     },

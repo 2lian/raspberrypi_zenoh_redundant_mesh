@@ -47,8 +47,8 @@
     /// See https://docs.rs/zenoh/latest/zenoh/config/struct.EndPoint.html
     endpoints: [
         "tcp/localhost:7447",
-        // "tcp/unifi.lan:7447",
-        // "udp/unifi.lan:7448",
+        // "tcp/central.lan:7447",
+        // "udp/central.lan:7448",
     ],
 
     /// Global connect configuration,

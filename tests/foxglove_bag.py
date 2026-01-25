@@ -5,7 +5,6 @@ import time
 import foxglove
 import foxglove.schemas as schemas
 import pytest
-from test_base import loop_it
 
 from elian_experiment.adv_sub import AdvancedSub
 
@@ -20,14 +19,26 @@ def bag():
     print("starting foxglove")
     with foxglove.open_mcap(mcap_file, allow_overwrite=True):
         server = foxglove.start_server()
+        server.clear_session()
+        time.sleep(0.5)
+        server.broadcast_time(time.time_ns())
+        time.sleep(0.5)
         print("server")
         yield
+        time.sleep(1)
         server.stop()
 
 
 @pytest.fixture(scope="module")
+def biglog_topic(bag):
+    return foxglove.Channel(
+        "/biglog",
+        schema=schemas.Log.get_schema(),
+        message_encoding=schemas.Log.get_schema().encoding,
+    )
+
+@pytest.fixture(scope="module")
 def stdout_topic(bag):
-    print("stdout_topic")
     return foxglove.Channel(
         "/stdout",
         schema=schemas.Log.get_schema(),
@@ -63,7 +74,7 @@ def log_payload(msg: str, count: int):
     pong["current_count"] = count
     # print(pong)
     foxglove.log(
-        topic="measurement",
+        topic="/measurement",
         log_time=now,
         message=pong,
     )
