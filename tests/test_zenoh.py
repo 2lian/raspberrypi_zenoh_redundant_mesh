@@ -16,7 +16,7 @@ import zenoh
 from elian_experiment.adv_sub import AdvancedSub
 
 from .events import wlan_down
-from .test_base import conversation
+from .test_base import conversation, listen
 from .variables import REMOTES, SSHTargets
 from .zenoh_utils import foxlog_zenoh_stdout
 
@@ -26,6 +26,7 @@ from .log_stats import *
 
 ID = "mesh_1"
 TEST_DURATION = 25
+
 
 def zenoh_router_proc(
     ssh_target: str, config_path: str
@@ -144,23 +145,79 @@ async def mirror(
         )
 
     for proc in mirror_proc():
-        print("hey")
         stdout_sub = afor_textio.from_proc_stdout(proc)
         stdout_sub.asap_callback.append(log_it)
+        print("mirror ready")
+        yield stdout_sub
+        stdout_sub.close()
+
+
+def chatter_proc() -> Generator[subprocess.Popen[str], Any, None]:
+    subprocess.Popen(
+        ["ssh", REMOTES.node2.ssh, "pkill -f", "chatter.py"],
+    ).wait()
+    p = subprocess.Popen(
+        [
+            "ssh",
+            REMOTES.node2.ssh,
+            "/home/moonshot/.pixi/bin/pixi run -m",
+            "~/raspberrypi_zenoh_redundant_mesh/pixi.toml",
+            "python3",
+            "~/raspberrypi_zenoh_redundant_mesh/elian_experiment/chatter.py",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        stdin=subprocess.PIPE,
+        text=True,
+    )
+
+    try:
+        yield p
+    finally:
+        subprocess.Popen(
+            ["ssh", REMOTES.node2.ssh, "pkill -f", "chatter.py"],
+        ).wait()
+        p.terminate()
+        p.wait()
+
+
+@pytest.fixture
+async def chatter_fix(
+    biglog_topic: foxglove.Channel,
+) -> AsyncGenerator[afor_textio.Sub[str], None]:
+    def log_it(msg: str):
+        if msg is None:
+            return
+        if msg == "":
+            return
+        now = time.time_ns()
+        print(msg)
+        biglog_topic.log(
+            msg=schemas.Log(
+                timestamp=schemas.Timestamp.now(),
+                level=schemas.LogLevel.Debug,
+                message=msg,
+                name="chatter python",
+            ).encode(),
+            log_time=now,
+        )
+
+    for proc in chatter_proc():
+        stdout_sub = afor_textio.from_proc_stdout(proc)
+        stdout_sub.asap_callback.append(log_it)
+        print("chatter ready")
         yield stdout_sub
         stdout_sub.close()
 
 
 @pytest.fixture
 async def setup_comms(
-    mirror: afor_textio.Sub[str],
     node1_zenohd: afor_textio.Sub[str],
     node2_zenohd: afor_textio.Sub[str],
     central_zenohd: afor_textio.Sub[str],
 ):
     await asyncio.wait(
         [
-            # asyncio.ensure_future(mirror.wait_for_value()),
             asyncio.ensure_future(node1_zenohd.wait_for_value()),
             asyncio.ensure_future(node2_zenohd.wait_for_value()),
             asyncio.ensure_future(central_zenohd.wait_for_value()),
@@ -216,7 +273,7 @@ def advanced_pub(z_session):
     p = zenoh.ext.declare_advanced_publisher(
         z_session,
         f"{ID}/request",
-        cache=zenoh.ext.CacheConfig(max_samples=100),
+        cache=zenoh.ext.CacheConfig(max_samples=1000),
         sample_miss_detection=zenoh.ext.MissDetectionConfig(
             heartbeat=1, sporadic_heartbeat=None
         ),
@@ -254,10 +311,21 @@ def pubsub(z_session, request):
         ),
         (
             lambda topic: afor.auto_session().declare_publisher(
-                topic, reliability=zenoh.Reliability.BEST_EFFORT
+                topic,
+                reliability=zenoh.Reliability.BEST_EFFORT,
+                congestion_control=zenoh.CongestionControl.DROP,
             ),
             afor.Sub,
-            "reliable",
+            "reliable-drop",
+        ),
+        (
+            lambda topic: afor.auto_session().declare_publisher(
+                topic,
+                reliability=zenoh.Reliability.BEST_EFFORT,
+                congestion_control=zenoh.CongestionControl.BLOCK,
+            ),
+            afor.Sub,
+            "reliable-block",
         ),
         (
             lambda topic: afor.auto_session().declare_publisher(
@@ -269,10 +337,12 @@ def pubsub(z_session, request):
     ],
     indirect=True,
 )
-@pytest.mark.parametrize("iter", range(10))
-async def test_zenoh_advanced_conversation(
+@pytest.mark.parametrize("iter", range(1))
+@pytest.mark.skip
+async def test_zenoh_conversation(
     pubsub,
     iter,
+    mirror,
     setup_comms,
     setup_monitoring,
     bag,
@@ -295,4 +365,66 @@ async def test_zenoh_advanced_conversation(
     event_task = asyncio.create_task(event())
     with suppress(KeyboardInterrupt):
         await afor.soft_wait_for(conv_task, TEST_DURATION)
+    event_task.cancel()
+
+
+@pytest.mark.parametrize(
+    "pubsub",
+    [
+        (
+            lambda topic: zenoh.ext.declare_advanced_publisher(
+                afor.auto_session(),
+                topic,
+                cache=zenoh.ext.CacheConfig(max_samples=1000),
+                sample_miss_detection=zenoh.ext.MissDetectionConfig(
+                    heartbeat=1, sporadic_heartbeat=None
+                ),
+                publisher_detection=True,
+            ),
+            AdvancedSub,
+            "advanced",
+        ),
+        (
+            lambda topic: afor.auto_session().declare_publisher(
+                topic, reliability=zenoh.Reliability.BEST_EFFORT
+            ),
+            afor.Sub,
+            "reliable",
+        ),
+        (
+            lambda topic: afor.auto_session().declare_publisher(
+                topic, reliability=zenoh.Reliability.RELIABLE
+            ),
+            afor.Sub,
+            "best_effort",
+        ),
+    ],
+    indirect=True,
+)
+@pytest.mark.parametrize("iter", range(1))
+async def test_zenoh_chat(
+    pubsub,
+    iter,
+    chatter_fix,
+    setup_comms,
+    setup_monitoring,
+    bag,
+):
+    TEST_PARAMS["iter"] = iter
+    foxglove.log("/test_params", TEST_PARAMS)
+    sub = pubsub[1]
+
+    async def lis():
+        await listen(sub, log_chat)
+
+    async def event():
+        await asyncio.sleep(5)
+        await wlan_down("node2", 3)
+
+    listen_task = asyncio.create_task(lis())
+    await asyncio.wait_for(sub.wait_for_value(), 6)
+
+    event_task = asyncio.create_task(event())
+    with suppress(KeyboardInterrupt):
+        await afor.soft_wait_for(listen_task, TEST_DURATION)
     event_task.cancel()

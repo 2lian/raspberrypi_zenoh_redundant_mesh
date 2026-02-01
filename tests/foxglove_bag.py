@@ -1,6 +1,8 @@
 import json
 import os
+from pprint import pprint
 import time
+from typing import Dict
 
 import foxglove
 import foxglove.schemas as schemas
@@ -22,8 +24,8 @@ def test_params_memory():
     yield
     foxglove.log("/test_params", TEST_PARAMS)
     TEST_PARAMS = {
-        "pubsub": "intermission",
-        "iter": np.nan,
+        "pubsub": "paused",
+        "iter": None,
     }
     foxglove.log("/test_params", TEST_PARAMS)
 
@@ -95,4 +97,34 @@ def log_payload(msg: str, count: int):
         topic="/measurement",
         log_time=now,
         message=pong,
+    )
+
+
+def log_chat(msg: Dict):
+    if msg is None:
+        return
+    if msg == "":
+        return
+    msg["payload_size"] = len(msg["source"]["data"])
+    try:
+        del msg["source"]["data"]
+    except KeyError:
+        pass
+    source_time = int(msg["source"]["time"])
+    target_time = int(msg["target"]["time"])
+    now = target_time
+    msg["source"]["timestamp"] = {
+        "sec": int(source_time // 1e9),
+        "nsec": int(source_time % 1e9),
+    }
+    msg["target"]["timestamp"] = {
+        "sec": int(target_time // 1e9),
+        "nsec": int(target_time % 1e9),
+    }
+    msg["total_size"] = len(msg)
+    msg["half_trip"] = target_time - source_time
+    foxglove.log(
+        topic="/measurement",
+        log_time=now,
+        message=msg,
     )

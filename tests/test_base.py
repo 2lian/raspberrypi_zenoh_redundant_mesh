@@ -3,7 +3,7 @@ import base64
 import json
 import os
 import time
-from typing import Any, Awaitable, Callable, Dict
+from typing import Any, Awaitable, Callable, Dict, Set
 
 import asyncio_for_robotics.zenoh as afor
 import foxglove
@@ -15,7 +15,7 @@ BB = 1024**0 * scaling
 KB = 1024**1 * scaling
 MB = 1024**2 * scaling
 GB = 1024**3 * scaling
-payload_size = int(4 * KB)
+DEFAULT_PAYLOAD_SIZE = int(4 * KB)
 
 
 def print_return(pong_raw: str, count: int):
@@ -42,11 +42,11 @@ async def conversation(
     sub: afor.Sub,
     pub: Callable[[str], Any],
     callback: Callable[[str, int], Any] = print_return,
+    payload_size: int = DEFAULT_PAYLOAD_SIZE,
 ):
     count = 0
     missed = 0
     late = 0
-
 
     def missed_react():
         nonlocal missed
@@ -70,7 +70,7 @@ async def conversation(
     report_errors()
 
     def send_payload():
-        nonlocal count, pub
+        nonlocal count, pub, payload_size
         data = {}
         _payload = os.urandom(payload_size)
         heavy_data = base64.b64encode(_payload).decode("ascii")
@@ -90,11 +90,11 @@ async def conversation(
         while 1:
             result = await afor.soft_wait_for(sub.wait_for_next(), 1)
             if isinstance(result, TimeoutError):
-                if sub.alive.is_set(): # don't log the very firsts ones as missed
+                if sub.alive.is_set():  # don't log the very firsts ones as missed
                     missed_react()
 
     async def loop():
-        nonlocal sub, count
+        nonlocal sub, count, payload_size
         async for msg_raw in sub.listen_reliable():
             msg = json.loads(msg_raw.payload.to_bytes())
             if msg["source"]["count"] != count - 1:
@@ -104,6 +104,7 @@ async def conversation(
                 callback, msg_raw.payload.to_string(), count
             )
             send_payload()
+            report_errors()
             # callback(msg_raw.payload.to_string(), count)
 
     loop_task = asyncio.create_task(loop())
@@ -120,3 +121,67 @@ async def conversation(
         loop_task.cancel()
         unstale_task.cancel()
         await asyncio.wait([loop_task, unstale_task])
+
+
+async def listen(
+    sub: afor.Sub,
+    callback: Callable[[Dict], Any],
+):
+    missed: Set[int] = set()
+    late: Set[int] = set()
+    duplicated: Set[int] = set()
+
+    def report_errors():
+        foxglove.log(
+            topic="/measurments/errors",
+            message={
+                "missed": len(missed),
+                "late": len(late),
+                "duplicated": len(duplicated),
+            },
+        )
+
+    report_errors()
+
+    async def loop():
+        nonlocal sub, missed, late, duplicated
+        index = None
+        async for msg_raw in sub.listen_reliable():
+            msg = json.loads(msg_raw.payload.to_bytes())
+            source_count = msg["source"]["count"]
+            if index is None:
+                index = source_count
+            msg["target"] = {
+                "time": time.time_ns(),
+                "count": index,
+            }
+            asyncio.get_event_loop().call_soon(callback, msg)
+
+            if index == source_count:
+                index += 1
+                report_errors()
+                continue
+
+            if index in missed:
+                if index in late:
+                    duplicated.add(index)
+                else:
+                    late.add(index)
+                report_errors()
+                continue
+
+
+            jumped = set(range(index, source_count))
+            missed = missed | (jumped - late)
+
+            report_errors()
+            index = source_count + 1
+
+    loop_task = asyncio.create_task(loop())
+    try:
+        await asyncio.wait([loop_task], return_when=asyncio.FIRST_COMPLETED)
+        print("ruh ho")
+        print(loop_task.done())
+    finally:
+        loop_task.cancel()
+        await asyncio.wait([loop_task])
