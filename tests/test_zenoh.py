@@ -12,12 +12,11 @@ import foxglove
 import foxglove.schemas as schemas
 import pytest
 import zenoh
-from colorama import Fore
-from foxglove.channel import Channel
 
 from elian_experiment.adv_sub import AdvancedSub
 
-from .test_base import loop_it
+from .events import wlan_down
+from .test_base import conversation
 from .variables import REMOTES, SSHTargets
 from .zenoh_utils import foxlog_zenoh_stdout
 
@@ -26,7 +25,7 @@ from .foxglove_bag import *
 from .log_stats import *
 
 ID = "mesh_1"
-
+TEST_DURATION = 25
 
 def zenoh_router_proc(
     ssh_target: str, config_path: str
@@ -205,14 +204,15 @@ async def setup_monitoring(biglog_topic):
 
 
 @pytest.fixture
-async def sub(z_session):
+async def advanced_sub(z_session, request):
+    print(request.param)
     s = AdvancedSub(f"{ID}/response")
     yield s
     s.close()
 
 
 @pytest.fixture
-def pub(z_session):
+def advanced_pub(z_session):
     p = zenoh.ext.declare_advanced_publisher(
         z_session,
         f"{ID}/request",
@@ -226,12 +226,73 @@ def pub(z_session):
     p.undeclare()
 
 
-async def test_debug(
-    sub,
-    pub,
+@pytest.fixture
+def pubsub(z_session, request):
+    p = request.param[0](f"{ID}/request")
+    s = request.param[1](f"{ID}/response")
+    TEST_PARAMS["pubsub"] = request.param[2]
+    yield (lambda x: p.put(x), s)
+    p.undeclare()
+    s.close()
+
+
+@pytest.mark.parametrize(
+    "pubsub",
+    [
+        (
+            lambda topic: zenoh.ext.declare_advanced_publisher(
+                afor.auto_session(),
+                topic,
+                cache=zenoh.ext.CacheConfig(max_samples=100),
+                sample_miss_detection=zenoh.ext.MissDetectionConfig(
+                    heartbeat=1, sporadic_heartbeat=None
+                ),
+                publisher_detection=True,
+            ),
+            AdvancedSub,
+            "advanced",
+        ),
+        (
+            lambda topic: afor.auto_session().declare_publisher(
+                topic, reliability=zenoh.Reliability.BEST_EFFORT
+            ),
+            afor.Sub,
+            "reliable",
+        ),
+        (
+            lambda topic: afor.auto_session().declare_publisher(
+                topic, reliability=zenoh.Reliability.RELIABLE
+            ),
+            afor.Sub,
+            "best_effort",
+        ),
+    ],
+    indirect=True,
+)
+@pytest.mark.parametrize("iter", range(10))
+async def test_zenoh_advanced_conversation(
+    pubsub,
+    iter,
     setup_comms,
     setup_monitoring,
     bag,
 ):
+    TEST_PARAMS["iter"] = iter
+    foxglove.log("/test_params", TEST_PARAMS)
+    pub = pubsub[0]
+    sub = pubsub[1]
+
+    async def conv():
+        await conversation(sub, pub, log_payload)
+
+    async def event():
+        await asyncio.sleep(5)
+        await wlan_down("node2", 3)
+
+    conv_task = asyncio.create_task(conv())
+    await asyncio.wait_for(sub.wait_for_value(), 5)
+
+    event_task = asyncio.create_task(event())
     with suppress(KeyboardInterrupt):
-        await afor.soft_wait_for(loop_it(sub, pub, log_payload), 120)
+        await afor.soft_wait_for(conv_task, TEST_DURATION)
+    event_task.cancel()

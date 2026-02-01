@@ -6,8 +6,8 @@ import time
 from typing import Any, Awaitable, Callable, Dict
 
 import asyncio_for_robotics.zenoh as afor
+import foxglove
 from colorama import Fore
-
 
 ID = "mesh_1"
 scaling = 1 / 1
@@ -15,10 +15,7 @@ BB = 1024**0 * scaling
 KB = 1024**1 * scaling
 MB = 1024**2 * scaling
 GB = 1024**3 * scaling
-
-_payload = os.urandom(int(30 * MB))
-DATA = base64.b64encode(_payload).decode("ascii")
-del _payload
+payload_size = int(4 * KB)
 
 
 def print_return(pong_raw: str, count: int):
@@ -41,20 +38,47 @@ def print_return(pong_raw: str, count: int):
         print(f"{Fore.YELLOW}COUNT DISCREPENCY{Fore.RESET}")
 
 
-async def loop_it(
+async def conversation(
     sub: afor.Sub,
     pub: Callable[[str], Any],
     callback: Callable[[str, int], Any] = print_return,
 ):
     count = 0
+    missed = 0
+    late = 0
+
+
+    def missed_react():
+        nonlocal missed
+        print(f"{Fore.RED}Stale, sending new payload.{Fore.RESET}")
+        send_payload()
+        missed += 1
+        report_errors()
+
+    def late_react():
+        nonlocal missed, late
+        print(f"{Fore.CYAN}Stale payload received :) yey.{Fore.RESET}")
+        missed -= 1
+        late += 1
+        report_errors()
+
+    def report_errors():
+        foxglove.log(
+            topic="/measurments/errors", message={"missed": missed, "late": late}
+        )
+
+    report_errors()
 
     def send_payload():
         nonlocal count, pub
         data = {}
+        _payload = os.urandom(payload_size)
+        heavy_data = base64.b64encode(_payload).decode("ascii")
+
         data["source"] = {
             "time": time.time_ns(),
             "count": count,
-            "data": DATA,
+            "data": heavy_data,
         }
         # print(json.dumps(data, indent=2))
         request = json.dumps(data)
@@ -64,17 +88,17 @@ async def loop_it(
     async def send_when_stale():
         nonlocal sub
         while 1:
-            result = await afor.soft_wait_for(sub.wait_for_next(), 10)
+            result = await afor.soft_wait_for(sub.wait_for_next(), 1)
             if isinstance(result, TimeoutError):
-                print(f"{Fore.RED}Stale, sending new payload.{Fore.RESET}")
-                send_payload()
+                if sub.alive.is_set(): # don't log the very firsts ones as missed
+                    missed_react()
 
     async def loop():
         nonlocal sub, count
         async for msg_raw in sub.listen_reliable():
             msg = json.loads(msg_raw.payload.to_bytes())
             if msg["source"]["count"] != count - 1:
-                print(f"{Fore.CYAN}Stale payload received :) yey.{Fore.RESET}")
+                late_react()
                 continue
             asyncio.get_event_loop().call_soon(
                 callback, msg_raw.payload.to_string(), count

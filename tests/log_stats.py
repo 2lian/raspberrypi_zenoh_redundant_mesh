@@ -45,6 +45,12 @@ def parse_iwdev(text: str) -> dict:
         if current_iface is None:
             continue
 
+        if not "ssid" in interfaces[current_iface]:
+            interfaces[current_iface]["ssid"] = ""
+        if not "channel" in interfaces[current_iface]:
+            interfaces[current_iface]["channel"] = ""
+
+
         # Section headers (e.g. "multicast TXQ:", "MLD with links:")
         if stripped.endswith(":"):
             section = stripped[:-1]
@@ -95,7 +101,7 @@ async def monitor_iwdev(ssh_target: str, stdout_topic: Channel):
         [
             "ssh",
             ssh_target,
-            r"""while :; do printf "stamp: %s\n%s\n" "$(date +%s%N)" "$(/usr/sbin/iw dev)"; sleep 1; done""",
+            r"""while :; do printf "stamp: %s\n%s\n" "$(date +%s%N)" "$(/usr/sbin/iw dev)"; sleep 0.333; done""",
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -250,7 +256,7 @@ async def monitor_ips(ssh_target: str, stdout_topic: Channel):
         [
             "ssh",
             ssh_target,
-            r"""while :; do printf "stamp: %s\n%s\n" "$(date +%s%N)" "$(ip -s link)"; sleep 1; done""",
+            r"""while :; do printf "stamp: %s\n%s\n" "$(date +%s%N)" "$(ip -s link)"; sleep 0.333; done""",
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,

@@ -4,11 +4,28 @@ import time
 
 import foxglove
 import foxglove.schemas as schemas
+import numpy as np
 import pytest
 
 from elian_experiment.adv_sub import AdvancedSub
 
 ID = "mesh_1"
+TEST_PARAMS = {
+    "pubsub": "paused",
+    "iter": None,
+}
+
+
+@pytest.fixture(autouse=True)
+def test_params_memory():
+    global TEST_PARAMS
+    yield
+    foxglove.log("/test_params", TEST_PARAMS)
+    TEST_PARAMS = {
+        "pubsub": "intermission",
+        "iter": np.nan,
+    }
+    foxglove.log("/test_params", TEST_PARAMS)
 
 
 @pytest.fixture(scope="module")
@@ -36,6 +53,7 @@ def biglog_topic(bag):
         schema=schemas.Log.get_schema(),
         message_encoding=schemas.Log.get_schema().encoding,
     )
+
 
 @pytest.fixture(scope="module")
 def stdout_topic(bag):
