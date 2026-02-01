@@ -247,7 +247,6 @@ def parse_ips(text: str, previous_result: Optional[dict]) -> dict:
                         iface[f"{d}_rate"] = rates
 
     _PREV_IPS = interfaces
-
     return interfaces
 
 

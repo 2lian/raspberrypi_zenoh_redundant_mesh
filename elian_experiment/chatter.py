@@ -17,7 +17,7 @@ from elian_experiment.adv_sub import AdvancedSub
 ID = "mesh_1"
 
 
-async def chatter_loop(pub: Callable[[str], Any], payload_size: int = 10_000):
+async def chatter_loop(pub: Callable[[str], Any], payload_size: int = 1_000):
     count = 0
     _payload = os.urandom(payload_size)
     heavy_data = base64.b64encode(_payload).decode("ascii")

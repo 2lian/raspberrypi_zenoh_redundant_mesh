@@ -22,7 +22,6 @@ TEST_PARAMS = {
 def test_params_memory():
     global TEST_PARAMS
     yield
-    foxglove.log("/test_params", TEST_PARAMS)
     TEST_PARAMS = {
         "pubsub": "paused",
         "iter": None,

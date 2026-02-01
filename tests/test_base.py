@@ -92,6 +92,8 @@ async def conversation(
             if isinstance(result, TimeoutError):
                 if sub.alive.is_set():  # don't log the very firsts ones as missed
                     missed_react()
+                else:
+                    send_payload()
 
     async def loop():
         nonlocal sub, count, payload_size
@@ -107,6 +109,7 @@ async def conversation(
             report_errors()
             # callback(msg_raw.payload.to_string(), count)
 
+    print("conversation started")
     loop_task = asyncio.create_task(loop())
     unstale_task = asyncio.create_task(send_when_stale())
     send_payload()
