@@ -120,7 +120,6 @@ def log_chat(msg: Dict):
         "sec": int(target_time // 1e9),
         "nsec": int(target_time % 1e9),
     }
-    msg["total_size"] = len(msg)
     msg["half_trip"] = target_time - source_time
     foxglove.log(
         topic="/measurement",

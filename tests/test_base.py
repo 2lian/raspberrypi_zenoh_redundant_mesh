@@ -150,6 +150,7 @@ async def listen(
         nonlocal sub, missed, late, duplicated
         index = None
         async for msg_raw in sub.listen_reliable():
+            total_size = len(msg_raw.payload.to_bytes())
             msg = json.loads(msg_raw.payload.to_bytes())
             source_count = msg["source"]["count"]
             if index is None:
@@ -158,6 +159,7 @@ async def listen(
                 "time": time.time_ns(),
                 "count": index,
             }
+            msg["total_size"] = total_size
             asyncio.get_event_loop().call_soon(callback, msg)
 
             if index == source_count:

@@ -49,8 +49,6 @@
         // "tcp/localhost:7447",
         "tcp/central.lan:7447#iface=wlanAP",
         // "udp/central.lan:7448#iface=wlanAP",
-        // "udp/central.lan:7448#iface=wlan1",
-        // "udp/central.lan:7448#iface=wlan2",
     ],
 
     /// Global connect configuration,

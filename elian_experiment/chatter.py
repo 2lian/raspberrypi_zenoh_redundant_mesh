@@ -1,14 +1,16 @@
 import asyncio
-from pprint import pprint
 import base64
 import json
 import os
+import string
 import time
 from contextlib import suppress
+from pprint import pprint
 from typing import Any, Awaitable, Callable, Dict
 
 import asyncio_for_robotics.zenoh as afor
 import foxglove
+import numpy as np
 import zenoh
 from colorama import Fore
 
@@ -16,11 +18,18 @@ from elian_experiment.adv_sub import AdvancedSub
 
 ID = "mesh_1"
 
+alphabet = np.frombuffer(
+    b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+    dtype=np.uint8,
+)
+rng = np.random.default_rng()
 
-async def chatter_loop(pub: Callable[[str], Any], payload_size: int = 1_000):
+
+async def chatter_loop(pub: Callable[[str], Any], payload_size: int = 100):
     count = 0
-    _payload = os.urandom(payload_size)
-    heavy_data = base64.b64encode(_payload).decode("ascii")
+    # _payload = os.urandom(payload_size)
+    # heavy_data = base64.b64encode(_payload).decode("utf-8")
+    heavy_data = rng.choice(alphabet, size=int(payload_size*3/4)).tobytes().decode("ascii")
     print("loop starting")
     async for t in afor.Rate(frequency=1000).listen_reliable():
         dic = {
@@ -49,7 +58,7 @@ async def main():
     pub = zenoh.ext.declare_advanced_publisher(
         ses,
         f"{ID}/response",
-        cache=zenoh.ext.CacheConfig(max_samples=100),
+        cache=zenoh.ext.CacheConfig(max_samples=1000),
         sample_miss_detection=zenoh.ext.MissDetectionConfig(
             heartbeat=1, sporadic_heartbeat=None
         ),

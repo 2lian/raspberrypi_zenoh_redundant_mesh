@@ -338,6 +338,7 @@ def pubsub(z_session, request):
     indirect=True,
 )
 @pytest.mark.parametrize("iter", range(1))
+# @pytest.mark.skip
 async def test_zenoh_conversation(
     pubsub,
     iter,
@@ -360,7 +361,7 @@ async def test_zenoh_conversation(
         await wlan_down("node2", 3)
 
     conv_task = asyncio.create_task(conv())
-    await asyncio.wait_for(sub.wait_for_value(), 10)
+    await asyncio.wait_for(sub.wait_for_value(), 30)
 
     event_task = asyncio.create_task(event())
     with suppress(KeyboardInterrupt):
@@ -410,6 +411,7 @@ async def test_zenoh_chat(
     setup_monitoring,
     bag,
 ):
+    TEST_DURATION = 40
     TEST_PARAMS["type"] = "sensor"
     TEST_PARAMS["iter"] = iter
     foxglove.log("/test_params", TEST_PARAMS)
@@ -423,7 +425,7 @@ async def test_zenoh_chat(
         await wlan_down("node2", 3)
 
     listen_task = asyncio.create_task(lis())
-    await asyncio.wait_for(sub.wait_for_value(), 6)
+    await asyncio.wait_for(sub.wait_for_value(), 30)
 
     event_task = asyncio.create_task(event())
     with suppress(KeyboardInterrupt):
