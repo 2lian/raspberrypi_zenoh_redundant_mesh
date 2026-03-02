@@ -358,7 +358,7 @@ async def test_zenoh_conversation(
 
     async def event():
         await asyncio.sleep(5)
-        await wlan_down("node2", 3)
+        # await wlan_down("node2", 3)
 
     conv_task = asyncio.create_task(conv())
     await asyncio.wait_for(sub.wait_for_value(), 30)
@@ -422,7 +422,7 @@ async def test_zenoh_chat(
 
     async def event():
         await asyncio.sleep(5)
-        await wlan_down("node2", 3)
+        # await wlan_down("node2", 3)
 
     listen_task = asyncio.create_task(lis())
     await asyncio.wait_for(sub.wait_for_value(), 30)

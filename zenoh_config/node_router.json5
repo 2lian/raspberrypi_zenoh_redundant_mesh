@@ -98,9 +98,8 @@
     ///
     /// See https://docs.rs/zenoh/latest/zenoh/config/struct.EndPoint.html
     endpoints: { router: [
-        // "tcp/[::]:7447#iface=lo",
-        // "tcp/[::]:7449#iface=bat0",
-        "quic/[::]:7447#iface=lo",
+        "tcp/[::]:7447#iface=lo",
+        "tcp/[::]:7449#iface=bat0",
         // "quic/[::]:7449#iface=bat0",
         // "udp/[::]:7449#iface=bat0",
     ],
@@ -700,7 +699,7 @@
         /// Path to the certificate of the certificate authority used to validate either the server
         /// or the client's keys and certificates, depending on the node's mode. If not specified
         /// on router mode then the default WebPKI certificates are used instead.
-        root_ca_certificate: null,
+        root_ca_certificate: "/etc/zenoh/certs/ca.crt",
         /// Path to the TLS listening side private key
         listen_private_key: null,
         /// Path to the TLS listening side public certificate

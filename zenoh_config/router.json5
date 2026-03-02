@@ -691,11 +691,11 @@
         /// Path to the certificate of the certificate authority used to validate either the server
         /// or the client's keys and certificates, depending on the node's mode. If not specified
         /// on router mode then the default WebPKI certificates are used instead.
-        root_ca_certificate: null,
+        root_ca_certificate: "/etc/zenoh/certs/ca.crt",
         /// Path to the TLS listening side private key
-        listen_private_key: null,
+        listen_private_key: "/etc/zenoh/certs/pi56.key",
         /// Path to the TLS listening side public certificate
-        listen_certificate: null,
+        listen_certificate: "/etc/zenoh/certs/pi56.crt",
         ///  Enables mTLS (mutual authentication), client authentication
         enable_mtls: false,
         /// Path to the TLS connecting side private key
